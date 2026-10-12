@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cuestionario · Clase 13 🧠</title>
+<style>
+  :root { --bg:#0b1220; --panel:#131c31; --p2:#1a2540; --tx:#e6eaf5; --su:#8b93ad; --cy:#61dafb; --ve:#34d399; --ro:#fb7185; --am:#fbbf24; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--tx); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; display:grid; place-items:center; padding:16px; }
+  .app { width:100%; max-width:720px; }
+  h1 { margin:0 0 4px; font-size:28px; } .sub { color:var(--su); margin:0 0 16px; }
+  .hud { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .chip { background:var(--panel); padding:8px 14px; border-radius:999px; font-size:14px; }
+  .chip b { color:var(--am); }
+  .barra { height:8px; background:var(--panel); border-radius:99px; overflow:hidden; margin-bottom:16px; }
+  .barra i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--cy),#a78bfa,#f472b6); transition:width .3s; }
+  .card { background:var(--panel); border-radius:18px; padding:22px; }
+  .tag { color:#a78bfa; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+  .q { font-size:19px; margin:8px 0 14px; }
+  pre { background:#0a0f1c; color:#c3e88d; padding:16px; border-radius:12px; overflow:auto; font-size:15px; line-height:1.5; margin:0 0 16px; white-space:pre-wrap; }
+  .btns { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  button { font:inherit; border:0; border-radius:14px; padding:14px; cursor:pointer; color:#04120c; font-weight:700; font-size:16px; }
+  .si { background:var(--ve); } .no { background:var(--ro); color:#2a0610; }
+  button:disabled { opacity:.45; cursor:default; }
+  .fb { margin-top:16px; padding:14px 16px; border-radius:12px; font-size:15px; line-height:1.5; }
+  .fb.ok { background:#10281f; border:1px solid var(--ve); } .fb.mal { background:#2a121a; border:1px solid var(--ro); }
+  .fb code, .fb pre { color:var(--cy); }
+  .fixlbl { margin-top:10px; font-weight:700; }
+  .fb pre { margin:6px 0 0; padding:10px 12px; font-size:14px; }
+  .next { background:var(--cy); margin-top:14px; width:100%; }
+  .fin { text-align:center; } .fin .big { font-size:56px; margin:6px 0; } .fin h2 { margin:0 0 6px; }
+  .hide { display:none; }
+  @media (max-width:480px){ .btns{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🧠 Cuestionario · Clase 13</h1>
+  <p class="sub">React Router a fondo, data mode, react-hook-form y yup. Decidí rápido y justificá.</p>
+  <div class="hud"><span class="chip">Pregunta <b id="n">1</b>/<span id="t"></span></span><span class="chip">Puntos <b id="pts">0</b></span><span class="chip">Racha 🔥 <b id="racha">0</b></span></div>
+  <div class="barra"><i id="prog"></i></div>
+
+  <div class="card" id="juego">
+    <div class="tag" id="tag"></div>
+    <div class="q" id="q"></div>
+    <pre id="code"></pre>
+    <div class="btns">
+      <button class="si" id="bsi">✅ <span id="lsi"></span></button>
+      <button class="no" id="bno">❌ <span id="lno"></span></button>
+    </div>
+    <div class="fb hide" id="fb"></div>
+    <button class="next hide" id="next">Siguiente →</button>
+  </div>
+
+  <div class="card fin hide" id="fin">
+    <div class="big" id="emoji">🏆</div>
+    <h2 id="rango"></h2>
+    <p id="res"></p>
+    <button class="next" onclick="empezar()">↺ Jugar de nuevo (preguntas mezcladas)</button>
+  </div>
+</div>
+
+<script>
+const PREGUNTAS = [
+  {"tipo": "code", "q": "Las páginas no aparecen: solo se ven la barra y el pie. ¿El Layout está bien?", "code": "function Layout() {\n  return (\n    <>\n      <Navbar />\n      <main></main>\n      <Footer />\n    </>\n  )\n}\n\n<Route element={<Layout />}>\n  <Route index element={<Inicio />} />\n  <Route path=\"pokemon\" element={<Lista />} />\n</Route>", "ok": false, "exp": "Falta el <code>&lt;Outlet /&gt;</code>: es el <b>hueco</b> donde React Router dibuja la ruta hija que coincide con la URL. Sin él, el Layout se ve pero las páginas no aparecen nunca.", "fix": "<main>\n  <Outlet />\n</main>"},
+  {"tipo": "code", "q": "¿Esta configuración muestra una página de 404 para cualquier URL que no existe?", "code": "<Route element={<Layout />}>\n  <Route path=\"*\" element={<NoEncontrada />} />\n  <Route index element={<Inicio />} />\n  <Route path=\"pokemon/:nombre\" element={<Detalle />} />\n</Route>", "ok": true, "exp": "Sí. Aunque el <code>*</code> esté primero, React Router no elige la primera ruta que coincide: elige la <b>más específica</b>. <code>/pokemon/mew</code> va a Detalle y <code>/pikachu</code>, al 404. Y como está adentro del Layout, el 404 tiene barra y pie."},
+  {"tipo": "code", "q": "En /pokemon, ¿cuántos links quedan marcados como activos?", "code": "<nav>\n  <NavLink to=\"/\">Inicio</NavLink>\n  <NavLink to=\"/pokemon\">Pokémon</NavLink>\n</nav>", "ok": false, "exp": "Quedan <b>dos</b>: NavLink coincide por prefijo, y todas las URLs empiezan con <code>/</code>, así que \"Inicio\" está activo en todas las páginas. Se arregla con la prop <code>end</code>.", "fix": "<NavLink to=\"/\" end>Inicio</NavLink>"},
+  {"tipo": "code", "q": "¿Este menú navega sin recargar la página?", "code": "<nav>\n  <a href=\"/\">Inicio</a>\n  <a href=\"/pokemon\">Pokémon</a>\n</nav>", "ok": false, "exp": "Con <code>&lt;a href&gt;</code> el navegador le pide el HTML <b>de nuevo</b> al servidor: se recarga toda la app y se pierde el estado. Adentro de la app se navega con <code>Link</code> o <code>NavLink</code>, que cambian la URL con la History API.", "fix": "<NavLink to=\"/\" end>Inicio</NavLink>\n<NavLink to=\"/pokemon\">Pokémon</NavLink>"},
+  {"tipo": "code", "q": "Después de crear el entrenador, ¿esto lleva al usuario a su detalle?", "code": "const navigate = useNavigate()\n\nasync function enviar(datos) {\n  const creado = await crearEntrenador(datos)\n  navigate(`/entrenadores/${creado.id}`)\n}", "ok": true, "exp": "Correcto: <code>useNavigate</code> devuelve una función para navegar <b>desde el código</b>, cuando el usuario no toca ningún link. Va en un evento (o en un efecto), nunca suelta en el render."},
+  {"tipo": "code", "q": "¿Este componente redirige bien al login cuando no hay usuario?", "code": "function Perfil() {\n  const usuario = useUsuario()\n  const navigate = useNavigate()\n\n  if (!usuario) navigate('/login')\n\n  return <h1>Hola, {usuario.nombre}</h1>\n}", "ok": false, "exp": "<code>navigate()</code> no se llama durante el render (React avisa con un warning), y además el <code>return</code> se ejecuta igual: <code>usuario.nombre</code> rompe con <i>Cannot read properties of null</i>. Para redirigir mientras se renderiza está el componente <code>&lt;Navigate /&gt;</code>.", "fix": "if (!usuario) return <Navigate to=\"/login\" replace />\n\nreturn <h1>Hola, {usuario.nombre}</h1>"},
+  {"tipo": "code", "q": "El usuario filtra por tipo, recarga la página (F5) y quiere seguir viendo el filtro. ¿Este código lo logra?", "code": "function Lista() {\n  const [tipo, setTipo] = useState('todos')\n\n  return (\n    <select value={tipo} onChange={(e) => setTipo(e.target.value)}>\n      …\n    </select>\n  )\n}", "ok": false, "exp": "Con <code>useState</code>, el filtro vive en la memoria del componente: se pierde al recargar, no se puede compartir por link y \"Atrás\" no lo deshace. Si el usuario querría compartir o guardar esa vista, el dato va en el <b>query string</b>.", "fix": "const [searchParams, setSearchParams] = useSearchParams()\nconst tipo = searchParams.get('tipo') ?? 'todos'\n\n<select value={tipo}\n  onChange={(e) => setSearchParams({ tipo: e.target.value })}>"},
+  {"tipo": "code", "q": "Con la URL /pokemon?pagina=2, ¿qué valor tiene pagina?", "code": "const [searchParams] = useSearchParams()\nconst pagina = searchParams.get('pagina')\n\nconsole.log(pagina + 1)", "ok": false, "exp": "<code>searchParams.get</code> devuelve siempre <b>texto</b> (o <code>null</code>). <code>pagina</code> es <code>'2'</code> y <code>'2' + 1</code> da <code>'21'</code>. Hay que convertirlo.", "fix": "const pagina = Number(searchParams.get('pagina') ?? 1)\nconsole.log(pagina + 1) // 3"},
+  {"tipo": "code", "q": "¿Esta ruta protegida deja pasar al usuario logueado a /perfil y /mis-pedidos?", "code": "function RutaPrivada() {\n  const usuario = useUsuario()\n  if (!usuario) return <Navigate to=\"/login\" replace />\n  return <Outlet />\n}\n\n<Route element={<RutaPrivada />}>\n  <Route path=\"perfil\" element={<Perfil />} />\n  <Route path=\"mis-pedidos\" element={<Pedidos />} />\n</Route>", "ok": true, "exp": "Sí: es una <b>ruta de layout</b> que decide. Sin usuario, redirige con <code>replace</code> (así \"Atrás\" no vuelve a la página prohibida); con usuario, devuelve el <code>Outlet</code> y se dibuja la hija. Ojo: protege la <b>interfaz</b>; los datos los protege el backend."},
+  {"tipo": "code", "q": "¿La carga diferida de Admin está bien armada?", "code": "const Admin = lazy(() => import('./paginas/Admin.jsx'))\n\n<Route path=\"admin\" element={<Admin />} />", "ok": false, "exp": "Falta el <code>&lt;Suspense&gt;</code>: mientras se descarga el archivo de Admin, React necesita algo para mostrar (el <code>fallback</code>). Además, <code>lazy</code> necesita que Admin se exporte con <code>export default</code>.", "fix": "<Route path=\"admin\" element={\n  <Suspense fallback={<p>Cargando…</p>}>\n    <Admin />\n  </Suspense>\n} />"},
+  {"tipo": "code", "q": "¿Este setup de data mode está bien en React Router 8?", "code": "import { createBrowserRouter } from 'react-router'\nimport { RouterProvider } from 'react-router/dom'\n\nconst router = createBrowserRouter([\n  { path: '/', Component: Layout, children: [\n    { index: true, Component: Inicio },\n  ] },\n])\n\ncreateRoot(root).render(<RouterProvider router={router} />)", "ok": true, "exp": "Correcto: el router se crea <b>una vez, afuera</b> de los componentes; las hijas van en <code>children</code>, la index con <code>index: true</code>, y <code>RouterProvider</code> se importa de <code>react-router/dom</code>."},
+  {"tipo": "code", "q": "¿Detalle recibe los datos del Pokémon?", "code": "{\n  path: 'pokemon/:nombre',\n  loader: async ({ params }) => {\n    const r = await fetch(`${URL}/pokemon/${params.nombre}`)\n    return r.json()\n  },\n  Component: Detalle,\n}\n\nfunction Detalle() {\n  const [pokemon, setPokemon] = useState(null)\n  return <h1>{pokemon.name}</h1>\n}", "ok": false, "exp": "Lo que devuelve el loader se lee con <code>useLoaderData()</code>, no con un <code>useState</code>. Acá <code>pokemon</code> es <code>null</code> y rompe. (Y al loader le falta revisar <code>r.ok</code>, como en la clase 12.)", "fix": "function Detalle() {\n  const pokemon = useLoaderData()\n  return <h1>{pokemon.name}</h1>\n}"},
+  {"tipo": "code", "q": "Si el Pokémon no existe, ¿se ve un mensaje claro en lugar de una pantalla rota?", "code": "loader: async ({ params }) => {\n  const r = await fetch(`${URL}/pokemon/${params.nombre}`)\n  if (!r.ok) throw data('No existe ese Pokémon', { status: 404 })\n  return r.json()\n},\nErrorBoundary: ErrorPokemon,\n\nfunction ErrorPokemon() {\n  const error = useRouteError()\n  return <p>{error.status} · {error.data}</p>\n}", "ok": true, "exp": "Sí: <code>throw data(…, { status: 404 })</code> tira un error con forma de respuesta, y React Router dibuja el <code>ErrorBoundary</code> de la ruta en lugar del Component. <code>useRouteError()</code> lo lee: <code>status</code> 404 y <code>data</code> con el mensaje."},
+  {"tipo": "code", "q": "¿Este formulario de data mode envía el voto al action de la ruta?", "code": "function Votar() {\n  return (\n    <Form method=\"post\">\n      <input />\n      <button>Votar</button>\n    </Form>\n  )\n}\n\naction: async ({ request }) => {\n  const form = await request.formData()\n  const pokemon = form.get('pokemon')\n  …\n}", "ok": false, "exp": "El action lee cada campo <b>por su <code>name</code></b>, como un formulario HTML. El input no tiene <code>name</code>, así que <code>form.get('pokemon')</code> devuelve <code>null</code>.", "fix": "<input name=\"pokemon\" />"},
+  {"tipo": "code", "q": "¿Se puede escribir en este input?", "code": "const { register } = useForm()\nconst nombre = ''\n\n<input value={nombre} {...register('nombre')} />", "ok": false, "exp": "Con <code>value</code> fijo el input queda <b>controlado</b> con un valor que nunca cambia: no se puede escribir. react-hook-form trabaja con inputs <b>no controlados</b>: el valor vive en el DOM y lo lee con la <code>ref</code>. A un input registrado no se le pone <code>value</code>.", "fix": "<input {...register('nombre')} />"},
+  {"tipo": "code", "q": "¿Este formulario valida antes de enviar?", "code": "const { register, handleSubmit } = useForm({\n  resolver: yupResolver(esquema),\n})\n\nfunction enviar(datos) { … }\n\n<form onSubmit={enviar}>", "ok": false, "exp": "Falta <code>handleSubmit</code>: es el que hace el <code>preventDefault</code>, valida con el resolver y, solo si todo está bien, llama a <code>enviar</code> con los datos. Con <code>onSubmit={enviar}</code> la página se recarga y no se valida nada.", "fix": "<form onSubmit={handleSubmit(enviar)}>"},
+  {"tipo": "code", "q": "¿El botón queda deshabilitado mientras se envía?", "code": "const { handleSubmit, formState: { isSubmitting } } = useForm()\n\nfunction enviar(datos) {\n  enviarVoto(datos) // POST\n}\n\n<button disabled={isSubmitting}>Votar</button>", "ok": false, "exp": "<code>isSubmitting</code> es <code>true</code> mientras la <b>promesa</b> de <code>enviar</code> no termina. Acá <code>enviar</code> no devuelve la promesa (no es async ni hace await): termina enseguida y el botón se habilita antes de que llegue la respuesta.", "fix": "async function enviar(datos) {\n  await enviarVoto(datos)\n}"},
+  {"tipo": "code", "q": "Si la API responde 500, ¿el usuario ve el error?", "code": "const { setError, formState: { errors } } = useForm()\n\nasync function enviar(datos) {\n  try {\n    await enviarVoto(datos)\n  } catch (err) {\n    setError('root', { message: err.message })\n  }\n}\n\n{errors.root && <p className=\"error\">{errors.root.message}</p>}", "ok": true, "exp": "Sí: <code>setError('root', …)</code> carga un error que <b>no pertenece a ningún campo</b>, como el del servidor, y se muestra con <code>errors.root.message</code>. (Recordá que el servicio tiene que tirar el Error cuando <code>!respuesta.ok</code>.)"},
+  {"tipo": "code", "q": "¿Este esquema muestra \"Obligatorio\" cuando el email está vacío?", "code": "email: string()\n  .email('Email inválido')\n  .required('Obligatorio'),", "ok": true, "exp": "Sí. Un string vacío no lo marca <code>email()</code> (no hay nada que revisar) y salta <code>required</code>. Igual, la costumbre es poner <code>required</code> <b>primero</b>: se lee mejor y yup reporta el primer error de cada campo."},
+  {"tipo": "code", "q": "Con un resolver de yup, ¿aparece el mensaje de error del email?", "code": "// esquema\nconst esquema = object({\n  email: string().required('Obligatorio').email('Inválido'),\n})\n\n// formulario\n<input {...register('mail')} />\n<p>{errors.mail?.message}</p>", "ok": false, "exp": "El nombre de <code>register</code> tiene que ser <b>igual</b> a la clave del esquema. yup valida <code>email</code> (que llega vacío), el error queda en <code>errors.email</code>… y nadie lo muestra. <code>errors.mail</code> nunca existe.", "fix": "<input {...register('email')} />\n<p>{errors.email?.message}</p>"},
+  {"tipo": "code", "q": "¿\"Repetir\" valida que sea igual a la contraseña?", "code": "object({\n  password: string().required().min(8),\n  repetir: string().oneOf(['password'], 'No coinciden'),\n})", "ok": false, "exp": "<code>oneOf(['password'])</code> exige que el valor sea el <b>texto</b> \"password\". Para comparar con <b>otro campo</b> se usa <code>ref</code>.", "fix": "repetir: string()\n  .required('Repetila')\n  .oneOf([ref('password')], 'No coinciden'),"},
+  {"tipo": "code", "q": "¿Esta regla condicional es válida en yup 1?", "code": "cuit: string().when('tipo', {\n  is: 'empresa',\n  then: string().required('Obligatorio'),\n  otherwise: string().notRequired(),\n}),", "ok": false, "exp": "Es la sintaxis de yup 0.32. En <b>yup 1</b>, <code>then</code> y <code>otherwise</code> son <b>funciones</b> que reciben el esquema y lo devuelven modificado. Las IAs todavía escriben mucho la versión vieja.", "fix": "cuit: string().when('tipo', {\n  is: 'empresa',\n  then: (s) => s.required('Obligatorio'),\n  otherwise: (s) => s.notRequired(),\n}),"},
+  {"tipo": "concepto", "q": "“Si un tutorial importa de react-router-dom, en React Router 8 hay que importar lo mismo de react-router.”", "code": "", "ok": true, "exp": "Sí. <code>react-router-dom</code> era el paquete de las versiones 6 y 7; en la 8 se eliminó. Todo se importa de <code>react-router</code>, salvo <code>RouterProvider</code>, que sale de <code>react-router/dom</code>."},
+  {"tipo": "concepto", "q": "“Una ruta protegida en React Router alcanza para que nadie pueda ver los datos privados.”", "code": "", "ok": false, "exp": "No. Protege la <b>interfaz</b>: el JS lo descarga el navegador y cualquiera lo puede leer o modificar. Los datos los tiene que proteger la <b>API</b> (el backend), verificando quién pide."},
+  {"tipo": "concepto", "q": "“El loader de una ruta se ejecuta después de que el componente se renderiza, como un useEffect.”", "code": "", "ok": false, "exp": "Al revés: el loader corre <b>antes</b> de renderizar la ruta, cuando se navega. Por eso el componente ya recibe los datos con <code>useLoaderData()</code> y no necesita un estado de cargando."},
+  {"tipo": "concepto", "q": "“Con react-hook-form, escribir en un input registrado no vuelve a renderizar el componente en cada tecla.”", "code": "", "ok": true, "exp": "Correcto: los inputs son <b>no controlados</b> y la librería guarda el valor por dentro. El componente se re-renderiza cuando cambia algo de <code>formState</code> que leíste, por ejemplo un error."},
+  {"tipo": "concepto", "q": "“Con number() de yup, el texto '25' de un input llega a la función de envío como el número 25.”", "code": "", "ok": true, "exp": "Sí: yup <b>valida y transforma</b>, y lo que recibe la función de envío es lo que devuelve yup. Un input vacío, en cambio, da <code>NaN</code> y salta <code>typeError</code>."},
+  {"tipo": "concepto", "q": "“El parámetro de ruta sirve para el filtro y la página, y el query string para identificar qué recurso estoy viendo.”", "code": "", "ok": false, "exp": "Al revés. El <b>parámetro de ruta</b> dice <b>qué</b> estoy viendo (<code>/pokemon/pikachu</code>); el <b>query string</b>, <b>cómo</b> lo estoy viendo: filtro, búsqueda, orden, página (<code>?tipo=fuego&amp;pagina=2</code>)."}
+];
+
+let orden, i, pts, racha, aciertos, respondida;
+const $ = id => document.getElementById(id);
+const mezclar = a => a.map(x => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+
+function empezar() {
+  orden = mezclar(PREGUNTAS); i = 0; pts = 0; racha = 0; aciertos = 0;
+  $('t').textContent = orden.length;
+  $('fin').classList.add('hide'); $('juego').classList.remove('hide');
+  mostrar();
+}
+function mostrar() {
+  const p = orden[i]; respondida = false;
+  $('n').textContent = i + 1; $('pts').textContent = pts; $('racha').textContent = racha;
+  $('prog').style.width = (i / orden.length * 100) + '%';
+  $('tag').textContent = p.tipo === 'code' ? '🔎 Analizá el código' : '🧠 Verdadero o falso';
+  $('q').textContent = p.q;
+  $('code').textContent = p.code; $('code').classList.toggle('hide', !p.code);
+  $('lsi').textContent = p.tipo === 'code' ? 'Correcto' : 'Verdadero';
+  $('lno').textContent = p.tipo === 'code' ? 'Tiene un error' : 'Falso';
+  $('bsi').disabled = $('bno').disabled = false;
+  $('fb').classList.add('hide'); $('next').classList.add('hide');
+}
+function responder(dijoSi) {
+  if (respondida) return; respondida = true;
+  const p = orden[i], acerto = dijoSi === p.ok;
+  if (acerto) { racha++; aciertos++; pts += 10 + Math.min(racha - 1, 5) * 2; } else racha = 0;
+  $('pts').textContent = pts; $('racha').textContent = racha;
+  $('bsi').disabled = $('bno').disabled = true;
+  const fb = $('fb');
+  fb.className = 'fb ' + (acerto ? 'ok' : 'mal');
+  const correcta = p.tipo === 'code' ? (p.ok ? 'Correcto' : 'Tiene un error') : (p.ok ? 'Verdadero' : 'Falso');
+  fb.innerHTML = (acerto ? '🎉 <b>¡Bien!</b> ' : '🤔 <b>Ojo.</b> ') + 'La respuesta correcta es <b>' + correcta + '</b>.<br>' + p.exp + (p.fix ? '<div class="fixlbl">✍️ Así queda bien:</div><pre></pre>' : '');
+  if (p.fix) fb.querySelector('pre').textContent = p.fix;
+  $('next').textContent = i === orden.length - 1 ? 'Ver resultado 🏁' : 'Siguiente →';
+  $('next').classList.remove('hide');
+}
+function siguiente() {
+  if (i === orden.length - 1) return fin();
+  i++; mostrar();
+}
+function fin() {
+  $('prog').style.width = '100%';
+  $('juego').classList.add('hide'); $('fin').classList.remove('hide');
+  const pc = aciertos / orden.length;
+  const r = pc >= .9 ? ['🏆', 'Senior de rutas y formularios'] : pc >= .7 ? ['🧠', 'Ya lo tenés claro'] : pc >= .5 ? ['🌱', 'Vas por buen camino'] : ['📚', 'A repasar y reintentar'];
+  $('emoji').textContent = r[0]; $('rango').textContent = r[1];
+  $('res').textContent = `${aciertos} de ${orden.length} correctas · ${pts} puntos`;
+}
+$('bsi').onclick = () => responder(true); $('bno').onclick = () => responder(false); $('next').onclick = siguiente;
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === '1') responder(true);
+  if (e.key === 'ArrowRight' || e.key === '2') responder(false);
+  if ((e.key === 'Enter' || e.key === ' ') && respondida && !$('fin').offsetParent && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); siguiente(); }
+});
+empezar();
+</script>
+</body>
+</html>
